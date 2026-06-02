@@ -1,4 +1,4 @@
--- MozerHub v2 - Blackjack Edition
+-- MozerHub v2.1 - Optimized Blackjack for Mobile
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
 local LeftSidebar = Instance.new("Frame")
@@ -6,14 +6,8 @@ local RightContent = Instance.new("Frame")
 local MinimizedFrame = Instance.new("TextButton")
 local Title = Instance.new("TextLabel")
 local CloseBtn = Instance.new("TextButton")
-local UserProfile = Instance.new("Frame")
-local UserName = Instance.new("TextLabel")
-local UserID = Instance.new("TextLabel")
-local UserIcon = Instance.new("ImageLabel")
-local TabContainer = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
 
--- Settings & Variables
+-- Game States
 local Balance = 1000
 local CurrentBet = 0
 local PlayerHand = {}
@@ -21,355 +15,272 @@ local DealerHand = {}
 local Deck = {}
 local GameActive = false
 
--- ScreenGui Setup
-ScreenGui.Name = "MozerHub_v2"
+-- UI Setup
+ScreenGui.Name = "MozerBlackjack_Mobile"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
--- Welcome Animation
-local function ShowWelcome()
-    local WelcomeGui = Instance.new("ScreenGui", game.CoreGui)
-    local MozerLabel = Instance.new("TextLabel", WelcomeGui)
-    MozerLabel.Size = UDim2.new(1, 0, 0.1, 0)
-    MozerLabel.Position = UDim2.new(0, 0, 0.38, 0)
-    MozerLabel.BackgroundTransparency = 1
-    MozerLabel.Text = "Mozer"
-    MozerLabel.TextSize = 80
-    MozerLabel.Font = Enum.Font.FredokaOne
-    local WelcomeLabel = Instance.new("TextLabel", WelcomeGui)
-    WelcomeLabel.Size = UDim2.new(1, 0, 0.1, 0)
-    WelcomeLabel.Position = UDim2.new(0, 0, 0.56, 0)
-    WelcomeLabel.BackgroundTransparency = 1
-    WelcomeLabel.Text = "Welcome Blackjack"
-    WelcomeLabel.TextSize = 40
-    WelcomeLabel.Font = Enum.Font.FredokaOne
-    task.spawn(function()
-        while WelcomeGui.Parent do
-            local hue = tick() % 5 / 5
-            MozerLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            WelcomeLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
-            task.wait()
-        end
-    end)
-    task.wait(2.2)
-    WelcomeGui:Destroy()
-end
-
--- Main Window
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-MainFrame.Size = UDim2.new(0, 520, 0, 360)
-MainFrame.Position = UDim2.new(0.5, -260, 0.5, -180)
-MainFrame.BorderSizePixel = 0
-MainFrame.Visible = false
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+MainFrame.Size = UDim2.new(0, 500, 0, 320) -- حجم مثالي للجوال
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -160)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
 
--- Sidebar
-LeftSidebar.Name = "Sidebar"
+-- Sidebar (Left)
 LeftSidebar.Parent = MainFrame
-LeftSidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-LeftSidebar.Size = UDim2.new(0, 155, 1, 0)
-LeftSidebar.BorderSizePixel = 0
-Instance.new("UICorner", LeftSidebar).CornerRadius = UDim.new(0, 12)
+LeftSidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+LeftSidebar.Size = UDim2.new(0, 130, 1, 0)
+Instance.new("UICorner", LeftSidebar).CornerRadius = UDim.new(0, 15)
 
 Title.Parent = LeftSidebar
 Title.Text = "Be Mozer 🃏"
-Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Position = UDim2.new(0, 15, 0, 10)
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextSize = 16
 Title.BackgroundTransparency = 1
 
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Parent = MainFrame
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
-CloseBtn.Size = UDim2.new(0, 35, 0, 35)
-CloseBtn.Position = UDim2.new(1, -40, 0, 5)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 22
-
--- Right Content (Blackjack Area)
-RightContent.Name = "Content"
+-- Right Content (Game Area)
 RightContent.Parent = MainFrame
 RightContent.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-RightContent.Position = UDim2.new(0, 165, 0, 20)
-RightContent.Size = UDim2.new(1, -175, 1, -40)
+RightContent.Position = UDim2.new(0, 135, 0, 10)
+RightContent.Size = UDim2.new(1, -145, 1, -20)
 Instance.new("UICorner", RightContent).CornerRadius = UDim.new(0, 12)
 
--- UI Elements for Game
-local BalanceLabel = Instance.new("TextLabel", RightContent)
-BalanceLabel.Size = UDim2.new(0.6, 0, 0, 30)
-BalanceLabel.Position = UDim2.new(0, 10, 0, 5)
-BalanceLabel.Text = "💰 Coins: " .. Balance
+-- Balance & Research
+local Header = Instance.new("Frame", RightContent)
+Header.Size = UDim2.new(1, -10, 0, 30)
+Header.Position = UDim2.new(0, 5, 0, 5)
+Header.BackgroundTransparency = 1
+
+local BalanceLabel = Instance.new("TextLabel", Header)
+BalanceLabel.Size = UDim2.new(0.7, 0, 1, 0)
+BalanceLabel.Text = "💰: " .. Balance
 BalanceLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-BalanceLabel.BackgroundTransparency = 1
 BalanceLabel.Font = Enum.Font.GothamBold
-BalanceLabel.TextSize = 16
+BalanceLabel.TextSize = 14
 BalanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+BalanceLabel.BackgroundTransparency = 1
 
-local RefreshBtn = Instance.new("TextButton", RightContent)
-RefreshBtn.Size = UDim2.new(0, 30, 0, 30)
-RefreshBtn.Position = UDim2.new(0.9, -35, 0, 5)
-RefreshBtn.Text = "🔄"
-RefreshBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", RefreshBtn)
+local ResearchBtn = Instance.new("TextButton", Header)
+ResearchBtn.Size = UDim2.new(0, 60, 0, 25)
+ResearchBtn.Position = UDim2.new(1, -65, 0, 0)
+ResearchBtn.Text = "إعادة 🔄"
+ResearchBtn.TextSize = 10
+ResearchBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ResearchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", ResearchBtn)
 
-local GameArea = Instance.new("Frame", RightContent)
-GameArea.Size = UDim2.new(1, -20, 0.5, 0)
-GameArea.Position = UDim2.new(0, 10, 0, 40)
-GameArea.BackgroundTransparency = 1
+-- Central Card Display
+local CardContainer = Instance.new("Frame", RightContent)
+CardContainer.Size = UDim2.new(1, -10, 0, 160)
+CardContainer.Position = UDim2.new(0, 5, 0, 40)
+CardContainer.BackgroundTransparency = 1
 
-local DealerFrame = Instance.new("Frame", GameArea)
-DealerFrame.Size = UDim2.new(1, 0, 0.45, 0)
-DealerFrame.BackgroundTransparency = 1
+local DealerCards = Instance.new("Frame", CardContainer)
+DealerCards.Size = UDim2.new(1, 0, 0.45, 0)
+DealerCards.BackgroundTransparency = 1
+local DLayout = Instance.new("UIListLayout", DealerCards)
+DLayout.FillDirection = Enum.FillDirection.Horizontal
+DLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+DLayout.Padding = UDim.new(0, 5)
 
-local PlayerFrame = Instance.new("Frame", GameArea)
-PlayerFrame.Size = UDim2.new(1, 0, 0.45, 0)
-PlayerFrame.Position = UDim2.new(0, 0, 0.55, 0)
-PlayerFrame.BackgroundTransparency = 1
+local PlayerCards = Instance.new("Frame", CardContainer)
+PlayerCards.Size = UDim2.new(1, 0, 0.45, 0)
+PlayerCards.Position = UDim2.new(0, 0, 0.55, 0)
+PlayerCards.BackgroundTransparency = 1
+local PLayout = Instance.new("UIListLayout", PlayerCards)
+PLayout.FillDirection = Enum.FillDirection.Horizontal
+PLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+PLayout.Padding = UDim.new(0, 5)
 
--- Betting Buttons Container
-local BetContainer = Instance.new("Frame", RightContent)
-BetContainer.Size = UDim2.new(1, -10, 0, 40)
-BetContainer.Position = UDim2.new(0, 5, 1, -85)
-BetContainer.BackgroundTransparency = 1
-local BetLayout = Instance.new("UIListLayout", BetContainer)
+-- Small Bet Buttons
+local BetScroll = Instance.new("ScrollingFrame", RightContent)
+BetScroll.Size = UDim2.new(1, -10, 0, 45)
+BetScroll.Position = UDim2.new(0, 5, 1, -85)
+BetScroll.CanvasSize = UDim2.new(1.5, 0, 0, 0)
+BetScroll.BackgroundTransparency = 1
+BetScroll.ScrollBarThickness = 0
+local BetLayout = Instance.new("UIListLayout", BetScroll)
 BetLayout.FillDirection = Enum.FillDirection.Horizontal
 BetLayout.Padding = UDim.new(0, 4)
-BetLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-local ControlContainer = Instance.new("Frame", RightContent)
-ControlContainer.Size = UDim2.new(1, -10, 0, 35)
-ControlContainer.Position = UDim2.new(0, 5, 1, -40)
-ControlContainer.BackgroundTransparency = 1
-
--- Function to create card UI
-local function CreateCardUI(card, parent)
-	local c = Instance.new("Frame", parent)
-	c.Size = UDim2.new(0, 45, 0, 70)
-	c.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	local corner = Instance.new("UICorner", c)
-	corner.CornerRadius = UDim.new(0, 8)
-	
-	local suit = Instance.new("TextLabel", c)
-	suit.Size = UDim2.new(1, 0, 0.5, 0)
-	suit.Text = card.Suit
-	suit.TextSize = 20
-	suit.BackgroundTransparency = 1
-	
-	local val = Instance.new("TextLabel", c)
-	val.Size = UDim2.new(1, 0, 0.5, 0)
-	val.Position = UDim2.new(0, 0, 0.5, 0)
-	val.Text = card.Name .. "\n" .. card.Val
-	val.TextSize = 10
-	val.TextColor3 = Color3.fromRGB(0,0,0)
-	val.Font = Enum.Font.GothamBold
-	val.BackgroundTransparency = 1
-    
-    Instance.new("UIListLayout", parent).FillDirection = Enum.FillDirection.Horizontal
-    Instance.new("UIListLayout", parent).Padding = UDim.new(0, 5)
+local function CreateBetBtn(amt)
+	local b = Instance.new("TextButton", BetScroll)
+	b.Size = UDim2.new(0, 45, 0, 35)
+	b.Text = "💵\n" .. amt
+	b.TextSize = 9
+	b.BackgroundColor3 = Color3.fromRGB(30, 50, 30)
+	b.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Instance.new("UICorner", b)
+	b.MouseButton1Click:Connect(function()
+		if not GameActive then CurrentBet = amt BalanceLabel.Text = "💰: "..Balance.." | الرهان: "..amt end
+	end)
 end
+local amounts = {10, 50, 100, 500, 1000, 2000, 5000, 10000}
+for _, a in pairs(amounts) do CreateBetBtn(a) end
 
--- Game Logic
+-- Control Buttons
+local Controls = Instance.new("Frame", RightContent)
+Controls.Size = UDim2.new(1, -10, 0, 35)
+Controls.Position = UDim2.new(0, 5, 1, -40)
+Controls.BackgroundTransparency = 1
+
+local MainAction = Instance.new("TextButton", Controls)
+MainAction.Size = UDim2.new(0, 100, 1, 0)
+MainAction.Position = UDim2.new(0.5, -50, 0, 0)
+MainAction.Text = "بدء اللعب ✅"
+MainAction.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+MainAction.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", MainAction)
+
+local HitBtn = Instance.new("TextButton", Controls)
+HitBtn.Size = UDim2.new(0, 80, 1, 0)
+HitBtn.Position = UDim2.new(0, 10, 0, 0)
+HitBtn.Text = "سحب 🃏"
+HitBtn.Visible = false
+HitBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 150)
+Instance.new("UICorner", HitBtn)
+
+local StandBtn = Instance.new("TextButton", Controls)
+StandBtn.Size = UDim2.new(0, 80, 1, 0)
+StandBtn.Position = UDim2.new(1, -90, 0, 0)
+StandBtn.Text = "توقف ✋"
+StandBtn.Visible = false
+StandBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+Instance.new("UICorner", StandBtn)
+
+-- Card Logic
 local suits = {"❤️", "💎", "♣️", "♠️"}
-local names = {
-	[1]="الآس",[11]="عجوز👴",[12]="أميرة👸",[13]="ملك🤴"
-}
+local names = {[1]="آس",[11]="عجوز👴",[12]="أميرة👸",[13]="ملك🤴"}
 
-local function CreateDeck()
-	Deck = {}
-	for _, suit in pairs(suits) do
-		for i = 1, 13 do
-			local cName = names[i] or tostring(i)
-			local cVal = i
-			if i > 10 then cVal = 10 end
-			if i == 1 then cVal = 11 end
-			table.insert(Deck, {Suit = suit, Name = cName, Val = cVal, RealNum = i})
-		end
+local function CreateCard(card, parent, isHidden)
+	local c = Instance.new("Frame", parent)
+	c.Size = UDim2.new(0, 45, 0, 75) -- ورق طويل وحواف ناعمة
+	c.BackgroundColor3 = isHidden and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(255, 255, 255)
+	Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+	
+	if not isHidden then
+		local t = Instance.new("TextLabel", c)
+		t.Size = UDim2.new(1, 0, 1, 0)
+		t.Text = card.Suit .. "\n" .. (names[card.Num] or card.Num)
+		t.TextSize = 10
+		t.Font = Enum.Font.GothamBold
+		t.TextColor3 = Color3.fromRGB(0,0,0)
+		t.BackgroundTransparency = 1
+	else
+		local t = Instance.new("TextLabel", c)
+		t.Size = UDim2.new(1, 0, 1, 0)
+		t.Text = "❓"
+		t.TextColor3 = Color3.fromRGB(255,255,255)
+		t.BackgroundTransparency = 1
 	end
 end
 
 local function GetScore(hand)
-	local score = 0
-	local aces = 0
-	for _, card in pairs(hand) do
-		score = score + card.Val
-		if card.RealNum == 1 then aces = aces + 1 end
+	local s, aces = 0, 0
+	for _, c in pairs(hand) do
+		local val = c.Num
+		if val > 10 then val = 10 end
+		if val == 1 then val = 11 aces = aces + 1 end
+		s = s + val
 	end
-	while score > 21 and aces > 0 do
-		score = score - 10
-		aces = aces - 1
-	end
-	return score
+	while s > 21 and aces > 0 do s = s - 10 aces = aces - 1 end
+	return s
 end
 
-local function ClearTable()
-	for _, v in pairs(DealerFrame:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-	for _, v in pairs(PlayerFrame:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-end
-
-local function EndGame(msg)
-	GameActive = false
-	CurrentBet = 0
-	BalanceLabel.Text = "💰 Coins: " .. Balance .. " | " .. msg
-end
-
--- Create Betting Buttons
-local bets = {10, 50, 100, 500, 1000, 2000, 5000, 10000}
-for _, bAmount in pairs(bets) do
-	local b = Instance.new("TextButton", BetContainer)
-	b.Size = UDim2.new(0, 42, 1, 0)
-	b.Text = "💵\n" .. bAmount
-	b.TextSize = 10
-	b.BackgroundColor3 = Color3.fromRGB(20, 40, 20)
-	b.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Instance.new("UICorner", b)
-	
-	b.MouseButton1Click:Connect(function()
-		if not GameActive and Balance >= bAmount then
-			CurrentBet = bAmount
-			BalanceLabel.Text = "💰 Coins: " .. Balance .. " | Bet: " .. CurrentBet
-		end
-	end)
-end
-
--- Action Buttons
-local SelectBtn = Instance.new("TextButton", ControlContainer)
-SelectBtn.Size = UDim2.new(0, 80, 1, 0)
-SelectBtn.Position = UDim2.new(0, 0, 0, 0)
-SelectBtn.Text = "Select ✅"
-SelectBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-Instance.new("UICorner", SelectBtn)
-
-local HitBtn = Instance.new("TextButton", ControlContainer)
-HitBtn.Size = UDim2.new(0, 80, 1, 0)
-HitBtn.Position = UDim2.new(0, 90, 0, 0)
-HitBtn.Text = "سحب 🃏"
-HitBtn.Visible = false
-Instance.new("UICorner", HitBtn)
-
-local StandBtn = Instance.new("TextButton", ControlContainer)
-StandBtn.Size = UDim2.new(0, 80, 1, 0)
-StandBtn.Position = UDim2.new(0, 180, 0, 0)
-StandBtn.Text = "توقف ✋"
-StandBtn.Visible = false
-Instance.new("UICorner", StandBtn)
-
-SelectBtn.MouseButton1Click:Connect(function()
-	if CurrentBet > 0 and not GameActive then
+-- Game Actions
+MainAction.MouseButton1Click:Connect(function()
+	if CurrentBet > 0 and not GameActive and Balance >= CurrentBet then
 		GameActive = true
 		Balance = Balance - CurrentBet
-		BalanceLabel.Text = "💰 Coins: " .. Balance .. " | Bet: " .. CurrentBet
-		ClearTable()
-		CreateDeck()
-		PlayerHand = {Deck[math.random(#Deck)], Deck[math.random(#Deck)]}
-		DealerHand = {Deck[math.random(#Deck)]}
+		PlayerHand = {{Num=math.random(1,13), Suit=suits[math.random(1,4)]}, {Num=math.random(1,13), Suit=suits[math.random(1,4)]}}
+		DealerHand = {{Num=math.random(1,13), Suit=suits[math.random(1,4)]}, {Num=math.random(1,13), Suit=suits[math.random(1,4)]}}
 		
-		for _, c in pairs(PlayerHand) do CreateCardUI(c, PlayerFrame) end
-		for _, c in pairs(DealerHand) do CreateCardUI(c, DealerFrame) end
+		for _, v in pairs(PlayerCards:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+		for _, v in pairs(DealerCards:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
 		
-		SelectBtn.Visible = false
+		for _, c in pairs(PlayerHand) do CreateCard(c, PlayerCards) end
+		CreateCard(DealerHand[1], DealerCards)
+		CreateCard({}, DealerCards, true) -- الكرت المخفي
+		
+		MainAction.Visible = false
 		HitBtn.Visible = true
 		StandBtn.Visible = true
+		BalanceLabel.Text = "💰: " .. Balance
 	end
 end)
 
 HitBtn.MouseButton1Click:Connect(function()
-	local card = Deck[math.random(#Deck)]
-	table.insert(PlayerHand, card)
-	CreateCardUI(card, PlayerFrame)
+	local newCard = {Num=math.random(1,13), Suit=suits[math.random(1,4)]}
+	table.insert(PlayerHand, newCard)
+	CreateCard(newCard, PlayerCards)
 	if GetScore(PlayerHand) > 21 then
-		HitBtn.Visible = false
-		StandBtn.Visible = false
-		SelectBtn.Visible = true
-		EndGame("LOSE! (Bust)")
+		GameActive = false
+		HitBtn.Visible = false StandBtn.Visible = false MainAction.Visible = true
+		MainAction.Text = "خسرت! جولة جديدة؟"
 	end
 end)
 
 StandBtn.MouseButton1Click:Connect(function()
-	HitBtn.Visible = false
-	StandBtn.Visible = false
-	SelectBtn.Visible = true
+	HitBtn.Visible = false StandBtn.Visible = false
+	for _, v in pairs(DealerCards:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+	for _, c in pairs(DealerHand) do CreateCard(c, DealerCards) end
 	
 	while GetScore(DealerHand) < 17 do
-		local card = Deck[math.random(#Deck)]
-		table.insert(DealerHand, card)
-		CreateCardUI(card, DealerFrame)
+		task.wait(0.5)
+		local c = {Num=math.random(1,13), Suit=suits[math.random(1,4)]}
+		table.insert(DealerHand, c)
+		CreateCard(c, DealerCards)
 	end
 	
-	local pS = GetScore(PlayerHand)
-	local dS = GetScore(DealerHand)
-	
+	local pS, dS = GetScore(PlayerHand), GetScore(DealerHand)
 	if dS > 21 or pS > dS then
 		Balance = Balance + (CurrentBet * 2)
-		EndGame("WIN! 🎉")
+		MainAction.Text = "فزت! 🎉 جولة جديدة؟"
 	elseif pS < dS then
-		EndGame("LOSE! 💀")
+		MainAction.Text = "خسرت! 💀 جولة جديدة؟"
 	else
 		Balance = Balance + CurrentBet
-		EndGame("DRAW! ⚖️")
+		MainAction.Text = "تعادل! جولة جديدة؟"
 	end
+	
+	GameActive = false
+	MainAction.Visible = true
+	BalanceLabel.Text = "💰: " .. Balance
 end)
 
-RefreshBtn.MouseButton1Click:Connect(function()
-    if not GameActive then
-        Balance = 1000
-        BalanceLabel.Text = "💰 Coins: " .. Balance
-    end
+ResearchBtn.MouseButton1Click:Connect(function()
+	if not GameActive then Balance = 1000 BalanceLabel.Text = "💰: " .. Balance end
 end)
 
--- Draggable & Minimized Logic (From your template)
-local function MakeDraggable(frame)
-    local UserInputService = game:GetService("UserInputService")
-    local dragging, dragStart, startPos
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    frame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-end
+-- Close/Minimize Logic
+CloseBtn.Parent = MainFrame
+CloseBtn.Text = "X"
+CloseBtn.Size = UDim2.new(0,30,0,30)
+CloseBtn.Position = UDim2.new(1,-35,0,5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.TextColor3 = Color3.fromRGB(255,0,0)
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false MinimizedFrame.Visible = true end)
 
-MinimizedFrame.Name = "MinimizedFrame"
 MinimizedFrame.Parent = ScreenGui
-MinimizedFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MinimizedFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
-MinimizedFrame.Size = UDim2.new(0, 55, 0, 55)
-MinimizedFrame.Visible = false
+MinimizedFrame.Size = UDim2.new(0,50,0,50)
+MinimizedFrame.Position = UDim2.new(0.1,0,0.5,0)
 MinimizedFrame.Text = "🃏"
-MinimizedFrame.TextSize = 32
+MinimizedFrame.Visible = false
+MinimizedFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Instance.new("UICorner", MinimizedFrame)
+MinimizedFrame.MouseButton1Click:Connect(function() MainFrame.Visible = true MinimizedFrame.Visible = false end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    MinimizedFrame.Visible = true
-end)
-
-MinimizedFrame.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    MinimizedFrame.Visible = false
-end)
-
-MakeDraggable(MainFrame)
-MakeDraggable(MinimizedFrame)
-
-task.spawn(function()
-    ShowWelcome()
-    MainFrame.Visible = true
-end)
+-- Draggable
+local function drag(f)
+	local s, start, startP
+	f.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then s = true start = i.Position startP = f.Position end end)
+	game:GetService("UserInputService").InputChanged:Connect(function(i) if s and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		local d = i.Position - start
+		f.Position = UDim2.new(startP.X.Scale, startP.X.Offset + d.X, startP.Y.Scale, startP.Y.Offset + d.Y)
+	end end)
+	f.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then s = false end end)
+end
+drag(MainFrame) drag(MinimizedFrame)
